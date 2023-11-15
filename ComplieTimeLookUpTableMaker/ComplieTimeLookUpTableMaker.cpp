@@ -15,15 +15,26 @@ consteval auto MakeLookUpTable(Generator&& generator)
 
 int main()
 {
-    constexpr auto generator{ [](auto e) { return e == '{' or e == '}'; } };
-    constexpr auto look_up_table{ MakeLookUpTable<128>(generator) };
+    constexpr auto lookup_table{ MakeLookUpTable<0xFF>([](char c) {
+        return 'A' <= c and c <= 'Z' ? static_cast<char>(c + 0x20) : c;
+    }) };
 
-    static_assert(look_up_table['{']);
-    static_assert(look_up_table['}']);
-    static_assert(!look_up_table['-']);
+    static_assert(lookup_table['a'] == lookup_table['A']);
+    static_assert(lookup_table['z'] == lookup_table['Z']);
+    static_assert(lookup_table['-'] == lookup_table['-']);
+    static_assert(lookup_table['{'] == lookup_table['{']);
+    static_assert(lookup_table['}'] == lookup_table['}']);
+    static_assert(lookup_table['a'] != lookup_table['b']);
 
-    for (auto [i, c] : look_up_table | std::views::enumerate)
+    for (auto [i, c] : lookup_table | std::views::enumerate | std::views::take(128))
     {
-        std::println("{:c} = {}", i, c);
+        if (std::iswcntrl(c))
+        {
+            std::println("{0}(0x{0:X}) = not printable", i, c);
+        }
+        else
+        {
+            std::println("{0}(0x{0:X}) = {1}", i, c);
+        }
     }
 }
